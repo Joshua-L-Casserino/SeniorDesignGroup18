@@ -45,14 +45,26 @@
 					<?php
 						if(!empty($_POST['equipmentID'])){
 							$equipmentID = $_POST['equipmentID'];
-							$sqlQuery = "UPDATE `equipmentid` SET `userName`= '$userName' WHERE `equipmentID` = '$equipmentID'";
-							$result = mysqli_query($link, $sqlQuery);
+							$sqlCheck = "SELECT * FROM `equipmentid` WHERE `equipmentID` = '$equipmentID'";
+							$result = mysqli_query($link, $sqlCheck);
+							$check = mysqli_fetch_array($result);
+							
 							if($result){
+								if(empty($check['userName']))
+								{
+									$sqlQuery = "UPDATE `equipmentid` SET `userName`= '$userName' WHERE `equipmentID` = '$equipmentID'";
+									$result = mysqli_query($link, $sqlQuery);
+									mysqli_close($link);
+									header('Location:equipmentAdded.php');
+								}
+								else{
+									mysqli_close($link);
+									echo "The equipment ID you entered is already assigned to another profile. Please check the equipment ID for any errors.";
+								}
+							}
+							else{
 								mysqli_close($link);
-								header('Location:equipmentAdded.php');
-							}else{
-								echo "The equipment was not added please check the input and try again.";
-								mysqli_close($link);
+								echo "The equipment ID you doesn't exist. Please check the equipment ID for any errors.";
 							}
 						}
 					?>
