@@ -2,7 +2,7 @@
 	session_start();
 	if(!$_SESSION['current'])
 		header('Location: noPermissions.php');
-        $userName = $_SESSION['userLoggedIn'];
+    $userName = $_SESSION['userLoggedIn'];
 	$user = 'id587274_group18';
 	$password = 'password';
 	$db = 'id587274_homehydroponicsystem';

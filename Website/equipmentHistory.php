@@ -1,8 +1,10 @@
 <?php
 	session_start();
-	$userID = $_SESSION['userLoggedIn'];
 	if(!empty($_GET['equipmentID']))
 		$equipmentID = $_GET['equipmentID'];
+	if(!$_SESSION['current'])
+		header('Location: noPermissions.php');
+    $userName = $_SESSION['userLoggedIn'];
 	$user = 'id587274_group18';
 	$password = 'password';
 	$db = 'id587274_homehydroponicsystem';
