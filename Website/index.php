@@ -1,9 +1,7 @@
 <?php
+	require_once('config.php');
+	$link = new mysqli(DBHOST, DBUSER, DBPASS, DBNAME) or die("Unable to connect!");
 	session_start();
-	$user = 'id587274_group18';
-	$password = 'password';
-	$db = 'id587274_homehydroponicsystem';
-	$link = new mysqli('localhost', $user, $password, $db) or die("Unable to connect!");
 ?>
 
 <html>

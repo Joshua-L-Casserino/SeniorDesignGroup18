@@ -1,12 +1,11 @@
 <?php
+	require_once('config.php');
+	$link = new mysqli(DBHOST, DBUSER, DBPASS, DBNAME) or die("Unable to connect!");
+	
 	session_start();
 	if(!$_SESSION['current'])
 		header('Location: noPermissions.php');
 	$userName = $_SESSION['userLoggedIn'];
-	$user = ' id587274_group18@2a02:4780:bad:c0de::13';
-	$password = '';
-	$db = 'id587274_homehydroponicsystem';
-	$link = new mysqli('localhost', $user, $password, $db) or die("Unable to connect!");
 ?>
 
 <html>

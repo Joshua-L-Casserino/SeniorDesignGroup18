@@ -1,12 +1,6 @@
 <?php
-	$host = "localhost";
-	$user = 'id587274_group18';
-	$password = 'password';
-
-	#$user = 'root';
-	#$password = 'root';
-	$db = 'id587274_homehydroponicsystem';
-	$link = new mysqli($host, $user, $password, $db) or die("Unable to connect!");
+	require_once('config.php');
+	$link = new mysqli(DBHOST, DBUSER, DBPASS, DBNAME) or die("Unable to connect!");
 
 	if(isset($_POST['equipmentID']))
 		$equipmentID = $_POST['equipmentID'];
@@ -22,41 +16,57 @@
 
 	$sql = "INSERT INTO `equipmenthistory` (`equipmentID`, `TDS`, `PH`, `LUX`, `WaterLevel`) VALUES ('$equipmentID', '$TDS', '$PH',  '$LUX', '$WATERLEVEL')";
 	$result = mysqli_query($link, $sql);
-		if ($result)
-			echo "ok";
-		else
-			echo "no";
-		
-	$sql = "UPDATE `equipmentid` SET `currentTDS`='$TDS',`currentPH`='$PH',`currentLUX`='$LUX',`currentWaterLevel`='$WATERLEVEL' WHERE `equipmentID` = '$equipmentID'";
-	$result = mysqli_query($link, $sql);
-		if ($result)
-			echo "ok";
-		else
-			echo "no";
-	
-	$sql = "
-				SELECT 1 
-				FROM `equipmentid`
-				WHERE `equipmentID` = '$equipmentID'
-				AND CURTIME() BETWEEN `lightOnTime` AND `lightOffTime`
-			";
-	$result = mysqli_query($link, $sql);
 	
 	if($result){
-		$led_On = mysqli_num_rows($result);
-		if($led_On){
+		$sql = "UPDATE `equipmentid` SET `currentTDS`='$TDS',`currentPH`='$PH',`currentLUX`='$LUX',`currentWaterLevel`='$WATERLEVEL' WHERE `equipmentID` = '$equipmentID'";
+		$result = mysqli_query($link, $sql);
+		
+		if($result){
 			$sql = "
-					UPDATE `equipmentid` SET `led` = 1 WHERE `equipmentID` = '$equipmentID'
-					";
+			SELECT 1 
+			FROM `equipmentid`
+			WHERE `equipmentID` = '$equipmentID'
+			AND CURTIME() BETWEEN `lightOnTime` AND `lightOffTime`
+			";
 			$result = mysqli_query($link, $sql);
-		}
-		else{
-			$sql = "
-					UPDATE `equipmentid` SET `led` = 0 WHERE `equipmentID` = '$equipmentID'
-					";
-			$result = mysqli_query($link, $sql);
+
+			if($result){
+				$led_On = mysqli_num_rows($result);
+				if($led_On){
+					$sql = "
+					UPDATE `equipmentid` SET `led` = 1 WHERE `equipmentID` = '$equipmentID'";
+					$result = mysqli_query($link, $sql);
+				}
+					else{
+						$sql = "
+						UPDATE `equipmentid` SET `led` = 0 WHERE `equipmentID` = '$equipmentID'
+						";
+						$result = mysqli_query($link, $sql);
+					}
+	
+				$sqlQuery = "SELECT * FROM `equipmentid` WHERE `equipmentID` = '$equipmentID'";
+				$result = mysqli_query($link, $sqlQuery);
+
+				if($result){
+					$row = mysqli_fetch_array($result);
+					if($row['userName'] != NULL){
+						
+						echo "$".$row['settingTdsHigh']."|";
+						echo "".$row['settingTdsLow']."|";
+						echo "".$row['settingPhHigh']."|";
+						echo "".$row['settingPhLow']."|";
+						echo "".$row['counterTDS']."|";
+						echo "".$row['counterPHUp']."|";
+						echo "".$row['counterPHDown']."|";
+						echo "".$row['counterFlowering']."|";
+						echo "".$row['led']."|";
+						echo "".$row['flowering']."|$";
+					}
+				}
+			}
 		}
 	}
+
+	mysqli_close($link);
 	
-		mysqli_close($link);
 ?>

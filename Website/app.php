@@ -1,13 +1,6 @@
 <?php
-
-
-	//$user = 'id587274_group18';
-	//$password = 'password';
-$host = "localhost";
-$user = 'id587274_group18';
-$password = 'password';
-$db = 'id587274_homehydroponicsystem';
-$link = new mysqli($host, $user, $password, $db) or die("Unable to connect!");
+	require_once('config.php');
+	$link = new mysqli(DBHOST, DBUSER, DBPASS, DBNAME) or die("Unable to connect!");
 
 	//switch for different php actions, set by post value opCode
 	//1 = check if valid user login
