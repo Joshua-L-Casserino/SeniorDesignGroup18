@@ -1,11 +1,56 @@
-<div class="error"><h1>Error</h1><p><strong>SQL query:</strong>
-<a href="server_sql.php?sql_query=SET+time_zone+%3D+%22%2B00%3A00%22&amp;show_query=1&amp;token=3fcf8a918c3a95b97caf02209d5a52c4"><span class="nowrap"><img src="themes/dot.gif" title="Edit" alt="Edit" class="icon ic_b_edit" />&nbsp;Edit</span></a>    </p>
-<p>
-<code class="sql"><pre>
-SET time_zone = &quot;+00:00&quot;
-</pre></code>
-</p>
-<p>
-    <strong>MySQL said: </strong><a href="./url.php?url=https%3A%2F%2Fdev.mysql.com%2Fdoc%2Frefman%2F5.7%2Fen%2Ferror-messages-server.html" target="mysql_doc"><img src="themes/dot.gif" title="Documentation" alt="Documentation" class="icon ic_b_help" /></a>
-</p>
-<code>#2006 - MySQL server has gone away</code><br/></div>
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+SET time_zone = "+00:00";
+
+CREATE TABLE `equipmenthistory` (
+  `equipmentID` varchar(4) COLLATE utf8_unicode_ci NOT NULL,
+  `TDS` int(11) NOT NULL,
+  `PH` decimal(3,1) NOT NULL,
+  `LUX` int(11) NOT NULL,
+  `WaterLevel` int(11) NOT NULL,
+  `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`equipmentID`,`timestamp`),
+  KEY `equipmentID` (`equipmentID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+CREATE TABLE `equipmentid` (
+  `userName` varchar(16) COLLATE utf8_unicode_ci,
+  `equipmentID` varchar(4) COLLATE utf8_unicode_ci NOT NULL,
+  `currentTDS` int(11) NOT NULL,
+  `currentPH` decimal(3,1) NOT NULL,
+  `currentLUX` int(11) NOT NULL,
+  `currentWaterLevel` int(11) NOT NULL,
+  `settingTdsHigh` int(11),
+  `settingTdsLow` int(11),
+  `settingPhHigh` decimal(3,1),
+  `settingPhLow` decimal(3,1),
+  `counterTDS` int(11) DEFAULT 300,
+  `counterPH` int(11) DEFAULT 300,
+  `counterFlowering` int(11) DEFAULT 300,
+  `lightOnTime` time,
+  `lightOffTime` time,
+  `led` tinyint(1) NOT NULL DEFAULT 1,
+  `flowering` tinyint(1) NOT NULL DEFAULT 0,
+  `currentTimestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `nickname` varchar(16) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `datePlanted` text COLLATE utf8_unicode_ci,
+  `plants` text COLLATE utf8_unicode_ci,
+  PRIMARY KEY (`equipmentID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+CREATE TABLE `presets` (
+  `plantType` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+  `settingTdsHigh` int(11) NOT NULL,
+  `settingTdsLow` int(11) NOT NULL,
+  `settingPhHigh` decimal(3,1) NOT NULL,
+  `settingPhLow` decimal(3,1) NOT NULL,
+  `lightOnTime` time NOT NULL,
+  `lightOffTime` time NOT NULL,
+  `flowering` tinyint(1) NOT NULL,
+  PRIMARY KEY (`plantType`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+CREATE TABLE `users` (
+  `userName` varchar(16) COLLATE utf8_unicode_ci NOT NULL,
+  `userPassword` varchar(16) COLLATE utf8_unicode_ci NOT NULL,
+  PRIMARY KEY (`userName`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
