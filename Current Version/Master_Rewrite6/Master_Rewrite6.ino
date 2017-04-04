@@ -14,16 +14,12 @@ boolean pH_Listen_Flag = true;
 
 
 //  MCU Time Management Declarations
-#define FiveSeconds 5000
-#define OneMinute 60000
-#define FiveMinutes 300000
-#define OneHour 3600000
 #define LCD_Display_Time 1000
 #define pH_pumpOn_Time 1000
 #define TDS_pumpOn_Time 1000
-boolean pH_Mix_Delay = false;
+boolean pH_Mix_Delay = true;
 int test_pH_again = 0;
-boolean TDS_Mix_Delay = false;
+boolean TDS_Mix_Delay = true;
 int test_TDS_again = 0;
 boolean flag = true;
 int last_Upate = 0;
@@ -34,60 +30,50 @@ int start_up = 0;
 
 //  Error Tracking
 char* error_String_Array[] = {
-  "pH Up solution is empty",
-  "pH Down solution is empty",
-  "TDS solution is empty",
-  "Flowering solution is empty",
+  "Solution 1 empty", // pH up
+  "Solution 2 empty", // pH Down
+  "Solution 3 empty", // TDS
+  "Solution 4 empty", // Flowering
   "Water is low",
   "TDS is high",
-  "System needs updating"
+  "Check WiFi"
 };
 
 boolean error_Array[10] = {false};
 
 //  pH Sensor Declarations
-#define pH_RX 2                         // define what pin rx is going to be
-#define pH_TX 3                         // define what pin tx is going to be
-SoftwareSerial pH_Serial(pH_RX, pH_TX);             // define how the soft serial port is going to work
+SoftwareSerial pH_Serial(2, 3);             // define how the soft serial port is going to work
 String pH_Sensor_String = "";                               // a string to hold the data from the Atlas Scientific product
 boolean pH_Sensor_String_Complete = false;                  // have we received all the data from the Atlas Scientific product
-String Value_pH;
+String Value_pH = " ";
 double pH_High = 7.0;
 double pH_Low = 6.5;
 
 
 //  TDS Sensor Declarations
-#define TDS_RX 6                        // define what pin rx is going to be
-#define TDS_TX 7                        // define what pin tx is going to be
-SoftwareSerial TDS_Serial(TDS_RX, TDS_TX);            // define how the soft serial port is going to work
+SoftwareSerial TDS_Serial(6, 7);            // define how the soft serial port is going to work
 String TDS_Sensor_String = "";                              // a string to hold the data from the Atlas Scientific product
 boolean TDS_Sensor_String_Complete = false;                 // have we received all the data from the Atlas Scientific product
-String Value_TDS = "";
+String Value_TDS = " ";
 int TDS_High = 1500;
 int TDS_Low = 800;
 
 //  Light Sensor Declarations
-int avgLux = 0;                                               // A int to hold the LUX reading from the light sensor
+int avgLux = 0;                                     // A int to hold the LUX reading from the light sensor
 byte address = 0x00;                                // Making room for the light sensor data
-Adafruit_TSL2591 tsl = Adafruit_TSL2591(2591);            // pass in a number for the sensor identifier (for your use later)
+Adafruit_TSL2591 tsl = Adafruit_TSL2591(2591);      // pass in a number for the sensor identifier (for your use later)
 int visible = 0;
+boolean lightChecked = true;
 
 //  Dimmer Declarations
-#define dimmer_pin 10
 int Light_Increment = 0; 
 
 //  Water Level Sensor Declarations
-#define SENSORPIN A1
-#define SERIESRESISTOR 560
-String waterPercentage = ""; 
+String waterPercentage = " ";
 double reading;
 double Water_Low;
 
 //  Pump Declarations
-#define Pump_TDS 8
-#define Pump_Flower A0
-#define Pump_pH_Up 4
-#define Pump_pH_Down 5
 int Pump_Counter_TDS = 300;
 int Pump_Counter_Flower = 300;
 int Pump_Counter_pH_Up = 300;
@@ -97,11 +83,11 @@ int Pump_Counter_pH_Down = 300;
 void setup() {                                            // set up the hardware
   
     // Pin declaration
-  pinMode (Pump_TDS, OUTPUT);
-  pinMode (Pump_Flower, OUTPUT);
-  pinMode (Pump_pH_Up, OUTPUT);
-  pinMode (Pump_pH_Down, OUTPUT);
-  pinMode (dimmer_pin, OUTPUT);
+  pinMode (8, OUTPUT);
+  pinMode (A0, OUTPUT);
+  pinMode (4, OUTPUT);
+  pinMode (5, OUTPUT);
+  pinMode (10, OUTPUT);
   
   Serial.begin(9600);                                     // set baud rate for the hardware serial port_0 to 9600
   pH_Serial.begin(9600);                                  // set baud rate for the software serial port to 9600
@@ -109,96 +95,152 @@ void setup() {                                            // set up the hardware
   input_String.reserve(10);                               // set aside some bytes for receiving data from the PC
   pH_Sensor_String.reserve(30);                             // set aside some bytes for receiving data from Atlas Scientific product
   TDS_Sensor_String.reserve(30);                          // set aside some bytes for receiving data from Atlas Scientific product
-  Wire.begin();                       // join i2c bus (address optional for master)
+  Wire.begin(1);                       // join i2c bus (address optional for master)
   tsl.setGain(TSL2591_GAIN_LOW);                // Sets the gain of the light sensor
   tsl.setTiming(TSL2591_INTEGRATIONTIME_100MS);         // shortest integration time (bright light)
   Wire.onReceive(Receiving_Data);
-  Wire.onRequest(Requesting_Data);
   SPI.begin();
 
   digitalPotWrite(Light_Increment);
-
-  pH_Serial.listen();
-  String temp = "";
-  send_to_LCD("Home Hydroponics", "Group 18");
   delay(2000);
-  for(int i = 0; i < 34; i++){
-    send_to_LCD("Loading System", temp);
-    water_Level_Sensor();
-    Light_Sensor();
+  send_to_LCD("Home Hydroponics", "Loading System");
+
+  while((Value_pH == " ") || (Value_TDS == " ") || (waterPercentage == " ") || (avgLux == 0)){
     if(pH_Listen_Flag)
       pH_Serial.listen();
       else
         TDS_Serial.listen();
-    pH_Sensor();
-    TDS_Sensor();
-    if(temp.length() < 16)
-      temp += ".";
-      else
-        temp = ""; 
+    Light_Sensor();
+    water_Level_Sensor();
+    sensorToggle();
   }
   LCD_Display();
-
+  
   //  Set the timers for each subsystem
-  timer.setInterval(FiveSeconds, pH_Sensor);
-  timer.setInterval(FiveSeconds, TDS_Sensor);
-  timer.setInterval(FiveSeconds, water_Level_Sensor);
-  timer.setInterval(3000, Light_Sensor);
-  timer.setInterval(30000, Light_Dimmer);
-  timer.setInterval(FiveSeconds, LCD_Display);
-  timer.setInterval(FiveMinutes, update_Database);
-  timer.setInterval(OneMinute, error_Reporting);
-  timer.setInterval(OneMinute, minuteCounter);
+  //  Min to Milli
+  //  1      60000
+  //  5      300000
+  //  10     600000
+  //  30     1800000
+  //  60     3600000
+  
+  timer.setInterval(10000, LCD_Display);
+  timer.setInterval(30000, sensorToggle);
+  timer.setInterval(60000, minuteCounter);
+  timer.setInterval(300000, Light_Sensor);
+  timer.setInterval(300000, water_Level_Sensor);
+  timer.setInterval(30000, error_Reporting);
+  timer.setInterval(60000, update_Database);
+}
+
+void loop() {
+  if(pH_Listen_Flag)
+    pH_Serial.listen();
+    else
+      TDS_Serial.listen();
+      
+  if(test_pH_again >= 1)
+    pH_Mix_Delay = false;
+    
+  if(test_TDS_again >= 1)
+    TDS_Mix_Delay = false;
+    
+  if(last_Upate > 60)
+    error_Array[6] = true;
+    
+  timer.run();
 }
 
 // Receiving data  Wire.onReceive(receiveEvent);
-void Receiving_Data(){
+void Receiving_Data(int howMany){
+  noInterrupts();
   // I'm planning for the data to come in this format "TDSHigh|TDSLow|pHHigh|pHLow|counterTDS|counterPHUp|counterPHDown|counterFlowering|led|flowering|"
-  input_String = " ";
+  input_String = "";
   int temp;
 
-  if(Wire.available() > 0){
+  while(Wire.available() > 0){
+    String temp2 = "";
     input_String = Wire.readStringUntil('|');
-    TDS_High = input_String.toInt();
-    
-    input_String = Wire.readStringUntil('|');
-    TDS_Low = input_String.toInt();
-    
-    input_String = Wire.readStringUntil('|');
-    pH_High = input_String.toFloat();
-    
-    input_String = Wire.readStringUntil('|');
-    pH_Low = input_String.toFloat();
-    
-    input_String = Wire.readStringUntil('|');
-    Pump_Counter_TDS = input_String.toInt();
 
-    input_String = Wire.readStringUntil('|');
-    Pump_Counter_pH_Up = input_String.toInt();
+    if(input_String.startsWith("TDS High: ")){
+      temp2 = input_String.substring(10);
+      TDS_High = temp2.toInt();
+      Serial.println("TDS High: " + String(TDS_High));
+    }
 
-    input_String = Wire.readStringUntil('|');  
-    Pump_Counter_pH_Down = input_String.toInt();
+    if(input_String.startsWith("TDS Low: ")){
+      temp2 = input_String.substring(9);
+      TDS_Low = temp2.toInt();
+      Serial.println("TDS Low: " + String(TDS_Low));
+    }
 
-    input_String = Wire.readStringUntil('|'); 
-    Pump_Counter_Flower = input_String.toInt();
+    if(input_String.startsWith("pH High: ")){
+      temp2 = input_String.substring(9);
+      pH_High = temp2.toFloat();
+      Serial.println("pH High: " + String(pH_High));
+    }
 
-    input_String = Wire.readStringUntil('|');
-    temp = input_String.toInt();
-    if(temp == 0)
-      Lighting_On = false;
-      else
-        Lighting_On = true;
-    
-    input_String = Wire.readStringUntil('|');
-    temp = input_String.toInt();
-    if(temp == 0)
-      Flowering = false;
-      else
-        Flowering = true;
+    if(input_String.startsWith("pH Low: ")){
+      temp2 = input_String.substring(8);
+      pH_Low = temp2.toFloat();
+      Serial.println("pH Low: " + String(pH_Low));
+    }
+
+    if(input_String.startsWith("counterTDS: ")){
+      temp2 = input_String.substring(12);
+      Pump_Counter_TDS = temp2.toInt();
+      Serial.println("counterTDS: " + String(Pump_Counter_TDS));
+    }
+
+    if(input_String.startsWith("counterPHup: ")){
+      temp2 = input_String.substring(13);
+      Pump_Counter_pH_Up = temp2.toInt();
+      Serial.println("counterPHup: " + String(Pump_Counter_pH_Up));
+    }    
+
+    if(input_String.startsWith("counterPHdown: ")){
+      temp2 = input_String.substring(15);
+      Pump_Counter_pH_Down = temp2.toInt();
+      Serial.println("counterPHdown: " + String(Pump_Counter_pH_Down));
+    }
+
+    if(input_String.startsWith("counterFlowering: ")){
+      temp2 = input_String.substring(18);
+      Pump_Counter_Flower = temp2.toInt();
+      Serial.println("counterPHdown: " + String(Pump_Counter_Flower));
+    }
+
+    if(input_String.startsWith("led: ")){
+      temp2 = input_String.substring(5);
+      temp = temp2.toInt();
+      if(temp == 0)
+        Lighting_On = false;
+        else
+          Lighting_On = true;
+      Serial.println("Lights On: " + String(Lighting_On));
+    }
+
+    if(input_String.startsWith("flowering: ")){
+      temp2 = input_String.substring(11);
+      temp = temp2.toInt();
+      if(temp == 0)
+        Flowering = false;
+        else
+          Flowering = true;
+      Serial.println("Flowering: " + String(Flowering));
+    }
   
   last_Upate = 0;
   error_Array[6] = false;
   }
+  interrupts();
+}
+
+void sensorToggle(){
+  if(pH_Listen_Flag)
+      pH_Sensor();
+      else
+        TDS_Sensor();
 }
 
 void minuteCounter(){
@@ -208,34 +250,36 @@ void minuteCounter(){
 }
 
 void Requesting_Data(){
-  Wire.write("update");
+  Wire.write("wow");
 }
 
 //  Light Sensor Function
 void Light_Sensor(){
   if(Lighting_On){
-    for(int i = 0; i < 10; i++){
+    for(int i = 0; i < 100; i++){
       sensor_t sensor;
       tsl.getSensor(&sensor);
       uint32_t lum = tsl.getFullLuminosity();
       uint16_t ir, full;
       ir = lum >> 16;
       full = lum & 0xFFFF;
-      if(avgLux = 0){
-        avgLux = tsl.calculateLux(full, ir);
+      int lux = tsl.calculateLux(full, ir);
+      if(lightChecked && (lux <= 100000)){
+        avgLux = lux;
         visible = (int)lum;
+        lightChecked = false;
       }
-        else{
-          avgLux = (avgLux + tsl.calculateLux(full, ir))/2;
+        else if(lux <= 100000){
+          avgLux = (avgLux + lux)/2;
           visible = (visible + (int)lum)/2;
       }
     }
+    Light_Dimmer();
   }
 }
 
 //  Dimmer Functions
 void Light_Dimmer(){
-  if(Lighting_On){
     if(visible > 10500 && avgLux > 30000 && Light_Increment > 10)
       Light_Increment -= 10;
       else if(avgLux > 31000 && Light_Increment > 10)
@@ -244,19 +288,18 @@ void Light_Dimmer(){
         Light_Increment += 10;
 
     digitalPotWrite(Light_Increment);
-    avgLux = 0;
-  }
+    lightChecked = true;
 }
 
 int digitalPotWrite(int value){
-  digitalWrite(dimmer_pin, LOW);
+  digitalWrite(10, LOW);
   SPI.transfer(address);
   SPI.transfer(value);
-  digitalWrite(dimmer_pin, HIGH);
+  digitalWrite(10, HIGH);
 }
 
 //  TDS Sensor Functions
-void print_TDS_Data(){                                 //  this function will pars the string  
+void print_TDS_Data(){                                 //  this function will pars the string 
   char sensorstring_array[30];                            //  we make a char array
   char *EC;                                               //  char pointer used in string parsing
   char *TDS;                                              //  char pointer used in string parsing
@@ -268,43 +311,39 @@ void print_TDS_Data(){                                 //  this function will pa
   TDS = strtok(NULL, ",");                                //  let's pars the array at each comma
   SAL = strtok(NULL, ",");                                //  let's pars the array at each comma
   GRAV = strtok(NULL, ",");                               //  let's pars the array at each comma
-  Serial.print("TDS: ");
-  Serial.println(TDS);                                    //  this is the TDS value
   Value_TDS = TDS; 
 }
 
 void TDS_Sensor(){
-  if(!pH_Listen_Flag){
-      if (TDS_Serial.available() > 0) {                         // if we see that the Atlas Scientific product has sent a character
-        char TDS_inchar = (char)TDS_Serial.read();            // get the char we just received
-        TDS_Sensor_String += TDS_inchar;                      // add the char to the var called sensorstring
-        if (TDS_inchar == '\r')                               // if the incoming character is a <CR>
-      TDS_Sensor_String_Complete = true;                // set the flag
-      }
+    while(TDS_Serial.available() > 0) {                         // if we see that the Atlas Scientific product has sent a character
+      char TDS_inchar = (char)TDS_Serial.read();            // get the char we just received
+      TDS_Sensor_String += TDS_inchar;                      // add the char to the var called sensorstring
+      if (TDS_inchar == '\r')                               // if the incoming character is a <CR>
+    TDS_Sensor_String_Complete = true;                // set the flag
+    }
 
-      if (TDS_Sensor_String_Complete == true) {         // if a string from the Atlas Scientific product has been received in its entirety
-        if (isdigit(TDS_Sensor_String[0]))           // if the first character in the string is a digit
-      print_TDS_Data();                             // then call this function
-        TDS_Sensor_String = "";                               // clear the string
-        TDS_Sensor_String_Complete = false;                   // reset the flag used to tell if we have received a completed string from the Atlas Scientific product
-    pH_Listen_Flag = true;
-    TDS_Check();
-      }
-  }
+    if (TDS_Sensor_String_Complete == true) {         // if a string from the Atlas Scientific product has been received in its entirety
+      if (isdigit(TDS_Sensor_String[0]))           // if the first character in the string is a digit
+        print_TDS_Data();                             // then call this function
+      TDS_Sensor_String = "";                               // clear the string
+      TDS_Sensor_String_Complete = false;                   // reset the flag used to tell if we have received a completed string from the Atlas Scientific product
+      pH_Listen_Flag = true;
+      TDS_Check();
+    }
 }
 
 //  Water Level Sensor Function
 void water_Level_Sensor(){
-  float avgRead;
+  float avgRead = 0;
   for(int i = 0; i < 10; i++){
-    reading = analogRead(SENSORPIN);
+    reading = analogRead(A1);
     // convert the value to resistance
     reading = (1023 / reading)  - 1;
-    reading = SERIESRESISTOR / reading;
+    reading = 560 / reading;
     avgRead = (avgRead + reading)/2;
   }
   float tempOne = (1570 - avgRead)/ 973;
-  int tempTwo = tempOne * 100;
+  int tempTwo = (tempOne * 100);
   waterPercentage = String(tempTwo);
   
   if(tempTwo < 20)
@@ -316,16 +355,15 @@ void water_Level_Sensor(){
 
 //  pH Sensor Function
 void pH_Sensor(){
-  if(pH_Listen_Flag){
-      if (pH_Serial.available() > 0) {                //if we see that the Atlas Scientific product has sent a character
+      while(pH_Serial.available() > 0) {                //if we see that the Atlas Scientific product has sent a character
         char pH_inchar = (char)pH_Serial.read();            //get the char we just received
         pH_Sensor_String += pH_inchar;                      //add the char to the var called sensorstring
         if (pH_inchar == '\r')                              //if the incoming character is a <CR>
-      pH_Sensor_String_Complete = true;               //set the flag
+        pH_Sensor_String_Complete = true;               //set the flag
       }
     if (pH_Sensor_String_Complete == true) {
     if (isdigit(pH_Sensor_String[0])){
-      pH_Sensor_String.remove(3);
+      pH_Sensor_String.remove(4);
       Value_pH = pH_Sensor_String;
       pH_Check();
     }
@@ -334,34 +372,22 @@ void pH_Sensor(){
     pH_Sensor_String_Complete = false;                  //reset the flag used to tell if we have received a completed string from the Atlas Scientific product
     pH_Listen_Flag = false;
   }
-  }
-}
-
-void loop() {
-  if(pH_Listen_Flag)
-    pH_Serial.listen();
-    else
-      TDS_Serial.listen();
-  if(test_pH_again > 1)
-    pH_Mix_Delay = false;
-  if(test_TDS_again > 1)
-    TDS_Mix_Delay = false;
-  if(last_Upate > 60)
-    error_Array[6] = true;
-    
-  timer.run();
 }
   
 void LCD_Display(){
-  if(flag)
+  if(flag){
     send_to_LCD("pH: " + Value_pH, "Tank " + waterPercentage + "% full");
-    else
+    Wire.flush();
+  }
+    else{
       send_to_LCD("TDS: " + Value_TDS, "Lux: " + String(avgLux));
+      Wire.flush();
+    }
       
-  toggle();
+  toggle_Flag();
 }
 
-void toggle(){
+void toggle_Flag(){
   flag = !flag;
 }
   
@@ -371,10 +397,12 @@ void send_to_LCD(String msgOne, String msgTwo){
   msgOne.getBytes(buffer,17);
   Wire.write(buffer);            
   Wire.endTransmission();    // stop transmitting
+  delay(500);
   Wire.beginTransmission(8); // transmit to device #8
   msgTwo.getBytes(buffer,17);
   Wire.write(buffer);            
   Wire.endTransmission();
+  delay(500);
 }
   
   //  Turning on a pump
@@ -386,9 +414,10 @@ void pump_On(int pin, int time){
 }
 
 void update_Database(){
-  String database_String = "Upload|PH: " + Value_pH + "|TDS: " + Value_TDS + "|LUX: " + String(avgLux) +  "|WATERLEVEL: " + waterPercentage + "|";
-  send_to_LCD(database_String,"");
-  delay(100);
+  send_to_LCD("Updating DB"," ");
+  delay(2000);
+  send_to_LCD("Upload", " ");
+  
 }
 
 void pH_Check(){
@@ -404,7 +433,7 @@ void pH_Check(){
         delay(1000);
       }
 
-    pump_On(Pump_pH_Up, pH_pumpOn_Time);
+    pump_On(4, pH_pumpOn_Time);
     Pump_Counter_pH_Up--;
     pH_Mix_Delay = true;
     test_pH_again = 0;
@@ -420,7 +449,7 @@ void pH_Check(){
         delay(1000);
       }
 
-      pump_On(Pump_pH_Down, pH_pumpOn_Time);
+      pump_On(5, pH_pumpOn_Time);
       Pump_Counter_pH_Down--;
       pH_Mix_Delay = true;
       test_pH_again = 0;
@@ -451,11 +480,19 @@ void TDS_Check(){
         send_to_LCD("Turning on pumps","in " + temp + " seconds");
         delay(1000);
       }
-
-      pump_On(Pump_TDS, TDS_pumpOn_Time/2);
+      pump_On(8, TDS_pumpOn_Time/2);
       Pump_Counter_TDS--;
-      pump_On(Pump_Flower, TDS_pumpOn_Time/2);
+
+      send_to_LCD("System Setting","Adding Nutrients");
+      delay(LCD_Display_Time);
+      for(int i = 3; i > 0; i--){
+        String temp = String(i);
+        send_to_LCD("Turning on pumps","in " + temp + " seconds");
+        delay(1000);
+      }
+      pump_On(A0, TDS_pumpOn_Time/2);
       Pump_Counter_Flower--;
+      
       test_TDS_again = 0;
       TDS_Mix_Delay = true;
       error_Array[2] = false;
@@ -470,7 +507,7 @@ void TDS_Check(){
         delay(LCD_Display_Time);
       }
 
-      pump_On(Pump_TDS, TDS_pumpOn_Time);
+      pump_On(8, TDS_pumpOn_Time);
       Pump_Counter_TDS -= 2;
       test_TDS_again = 0;
       TDS_Mix_Delay = true;
@@ -515,3 +552,5 @@ void error_Reporting(){
     }
   }
 }
+
+

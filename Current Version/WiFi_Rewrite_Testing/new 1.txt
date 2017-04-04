@@ -1,0 +1,138 @@
+#include <Wire.h>
+
+/*
+ *  Simple HTTP get webclient test
+ */
+
+#include <ESP8266WiFi.h>
+
+const char* ssid     = "JOSH 4051";
+const char* password = "48!V263k";
+const char* host = "group18.net16.net";  //db host
+
+String equipmentID = "1234";
+
+
+//wifi info
+
+
+String TDS = "850";
+String PH = "7";
+String LUX = "1000";
+String WATERLEVEL = "75";
+String dump="";
+
+void setup() {
+  Serial.begin(9600);
+  delay(100);
+  pinMode(2,OUTPUT);
+  pinMode(0,OUTPUT);
+  // We start by connecting to a WiFi network
+
+//  Wire.begin(7);
+//  Wire.onReceive(receiveEvent);
+  
+
+//  Serial.println();
+//  Serial.println();
+ // Serial.print("Connecting to ");
+ // Serial.println(ssid);
+  
+  WiFi.begin(ssid, password);
+  
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    //Serial.print(".");
+    digitalWrite(2,HIGH);
+    delay(500);
+    digitalWrite(2,LOW);
+  }
+
+//  Serial.println("");
+//  Serial.println("WiFi connected");  
+//  Serial.println("IP address: ");
+//  Serial.println(WiFi.localIP());
+
+ 
+}
+
+
+void loop() {
+  delay(5000);
+
+
+  //Serial.print("connecting to ");
+  //Serial.println(host);
+  
+  // Use WiFiClient class to create TCP connections
+  WiFiClient client;
+  const int httpPort = 80;
+  if (!client.connect(host, httpPort)) {
+    Serial.println("connection failed");
+    for(int i = 0; i < 3; i++)
+    {
+      digitalWrite(0,HIGH);
+      delay(300);
+      digitalWrite(0,LOW);
+      delay(300);
+    }
+    return;
+  }
+  
+  
+  // We now create a URI for the request
+  String url = "/upload.php";
+  String postInfo = "equipmentID="+equipmentID+"&PH="+PH+"&TDS="+TDS+"&LUX="+LUX+"&WATERLEVEL="+WATERLEVEL;
+  
+  // This will send the request to the server
+  client.print(String("POST ") + url + " HTTP/1.1\r\n" +
+               "Host: " + host + "\r\n" + 
+               "User-Agent: Arduino/1.0\r\n"+
+               "Connection: close\r\n"+
+               "Content-Type: application/x-www-form-urlencoded\r\n"+
+               "Content-Length: "+ postInfo.length() +"\r\n" +
+               "\r\n"+
+               postInfo);
+
+  delay(1000);
+  
+  /*
+  // parse webpage response here
+  while(client.available()){
+    String line = client.readStringUntil('\r');
+    //Serial.print(line);
+  }
+  */
+//  Serial.println();
+ // Serial.println("closing connection");
+
+  while(Serial.available()>0){
+    String line = Serial.readStringUntil('|');
+    //Serial.println(line);
+    
+    if(line.startsWith("PH: ")){
+      PH=line.substring(4);
+      }
+    if(line.startsWith("TDS: ")){
+      TDS=line.substring(5);
+      }
+    if(line.startsWith("LUX: ")){
+      LUX=line.substring(5);
+      }
+    if(line.startsWith("WATERLEVEL: ")){
+      WATERLEVEL=line.substring(12);
+      }
+      
+    } 
+    
+      // parse webpage response here
+      while(client.available() > 0){
+        String line = client.readStringUntil('$');
+        String line2 = client.readStringUntil('$');
+        if(line.length() > 20){
+          Serial.println(line2);
+        }
+      }
+}
+
+
