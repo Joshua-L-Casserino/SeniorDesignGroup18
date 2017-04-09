@@ -58,7 +58,6 @@
 									if ($UID['userPassword'] === $inputPassword){
 										$_SESSION['userLoggedIn'] = $inputUser;
 										$_SESSION['current'] = true;
-										mysqli_close($link);
 										header('Location: userHome.php');
 									}
 									else{
