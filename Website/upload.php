@@ -12,13 +12,21 @@
 		$LUX= $_POST['LUX'];
 	if(isset($_POST['WATERLEVEL']))
 		$WATERLEVEL= $_POST['WATERLEVEL'];
+	if(isset($_POST['counterTDS']))
+		$counterTDS= $_POST['counterTDS'];
+	if(isset($_POST['counterPHup']))
+		$counterPHup= $_POST['counterPHup'];
+	if(isset($_POST['counterPHdown']))
+		$counterPHdown= $_POST['counterPHdown'];
+	if(isset($_POST['counterFlowering']))
+		$counterFlowering= $_POST['counterFlowering'];
 
 
 	$sql = "INSERT INTO `equipmenthistory` (`equipmentID`, `TDS`, `PH`, `LUX`, `WaterLevel`) VALUES ('$equipmentID', '$TDS', '$PH',  '$LUX', '$WATERLEVEL')";
 	$result = mysqli_query($link, $sql);
 	
 	if($result){
-		$sql = "UPDATE `equipmentid` SET `currentTDS`='$TDS',`currentPH`='$PH',`currentLUX`='$LUX',`currentWaterLevel`='$WATERLEVEL' WHERE `equipmentID` = '$equipmentID'";
+		$sql = "UPDATE `equipmentid` SET `currentTDS`='$TDS',`currentPH`='$PH',`currentLUX`='$LUX',`currentWaterLevel`='$WATERLEVEL', `counterTDS` = '$counterTDS', `counterPHup` = '$counterPHup', `counterPHdown` = '$counterPHdown', `counterFlowering` = '$counterFlowering' WHERE `equipmentID` = '$equipmentID'";
 		$result = mysqli_query($link, $sql);
 		
 		if($result){
@@ -51,16 +59,16 @@
 					$row = mysqli_fetch_array($result);
 					if($row['userName'] != NULL){
 						
-						echo "$".$row['settingTdsHigh']."|";
-						echo "".$row['settingTdsLow']."|";
-						echo "".$row['settingPhHigh']."|";
-						echo "".$row['settingPhLow']."|";
-						echo "".$row['counterTDS']."|";
-						echo "".$row['counterPHUp']."|";
-						echo "".$row['counterPHDown']."|";
-						echo "".$row['counterFlowering']."|";
-						echo "".$row['led']."|";
-						echo "".$row['flowering']."|$";
+						echo "$".$row['settingTdsHigh'].",";
+						echo "".$row['settingTdsLow'].",";
+						echo "".$row['settingPhHigh'].",";
+						echo "".$row['settingPhLow'].",";
+						echo "".$row['counterTDS'].",";
+						echo "".$row['counterPHup'].",";
+						echo "".$row['counterPHdown'].",";
+						echo "".$row['counterFlowering'].",";
+						echo "".$row['led'].",";
+						echo "".$row['flowering'].",$";
 					}
 				}
 			}
