@@ -44,35 +44,34 @@
 								</div>								
 								
 							</form>
-<?php
-	if(!empty($_POST['login-id']) && !empty($_POST['login-password'])){
-		$inputUser = $_POST['login-id'];
-		$inputPassword = $_POST['login-password'];
-		
-		$sqlQuery = "SELECT* FROM `users` WHERE `userName` = '$inputUser'";
-		
-		$result = mysqli_query($link, $sqlQuery);
-		$UID = mysqli_fetch_array($result);
-		mysqli_close($link);
-		
-		if ($UID['userPassword'] === $inputPassword){
-			$_SESSION['userLoggedIn'] = $inputUser;
-			$_SESSION['current'] = true;
-			header('Location: userHome.php');
-		}
-		else{
-			echo "Login Failed! Please try again.";
-		}
-	}
-	else if(!empty($_POST['login-id'])){
-		echo "Please enter your password!";
-	}
-	else if(!empty($_POST['login-password'])){
-		echo "Please enter your User ID!";
-	}
-	else{}
-?>
-
+						<?php
+							if(!empty($_POST['login-id']) && !empty($_POST['login-password'])){
+								$inputUser = $_POST['login-id'];
+								$inputPassword = $_POST['login-password'];
+								
+								$sqlQuery = "SELECT* FROM `users` WHERE `userName` = '$inputUser'";
+								
+								$result = mysqli_query($link, $sqlQuery);
+								$UID = mysqli_fetch_array($result);
+								mysqli_close($link);
+								
+								if ($UID['userPassword'] === $inputPassword){
+									$_SESSION['userLoggedIn'] = $inputUser;
+									$_SESSION['current'] = true;
+									header('Location: userHome.php');
+								}
+								else{
+									echo "Login Failed! Please try again.";
+								}
+							}
+							else if(!empty($_POST['login-id'])){
+								echo "Please enter your password!";
+							}
+							else if(!empty($_POST['login-password'])){
+								echo "Please enter your User ID!";
+							}
+							else{}
+						?>
 						</div>	
 						
 					</div>
@@ -99,23 +98,23 @@
 								
 								<button class="btn btn-default" type="submit" name="register-button">Register</button>
 							</form>
-<?php
-	if(!empty($_POST['newUser-name']) && !empty($_POST['newUser-password'])){
-		$inputUser = $_POST['newUser-name'];
-		$inputPassword = $_POST['newUser-password'];
-		$sqlQuery = "INSERT INTO `users` (`userName`, `userPassword`) VALUES ('$inputUser', '$inputPassword')";
-		$result = mysqli_query($link, $sqlQuery);
-		mysqli_close($link);
-		if ($result)
-			header('Location: accountRegistered.php');
-		else
-			echo "That user name is already taken. Please try another.";
-}
-else if(!empty($_POST['newUser-name']) && empty($_POST['newUser-password']))
-	echo "Please enter your password name.";
-else if(empty($_POST['newUser-name']) && !empty($_POST['newUser-password']))
-	echo "Please enter your user name.";
-?>
+						<?php
+							if(!empty($_POST['newUser-name']) && !empty($_POST['newUser-password'])){
+								$inputUser = $_POST['newUser-name'];
+								$inputPassword = $_POST['newUser-password'];
+								$sqlQuery = "INSERT INTO `users` (`userName`, `userPassword`) VALUES ('$inputUser', '$inputPassword')";
+								$result = mysqli_query($link, $sqlQuery);
+								mysqli_close($link);
+								if ($result)
+									header('Location: accountRegistered.php');
+								else
+									echo "That user name is already taken. Please try another.";
+						}
+						else if(!empty($_POST['newUser-name']) && empty($_POST['newUser-password']))
+							echo "Please enter your password name.";
+						else if(empty($_POST['newUser-name']) && !empty($_POST['newUser-password']))
+							echo "Please enter your user name.";
+						?>
 						</div>	
 					</div>					
 				</div>
